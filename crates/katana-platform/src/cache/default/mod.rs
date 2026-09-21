@@ -174,9 +174,20 @@ impl DefaultCacheService {
 
     fn clear_temporary_diagram_images() {
         let temp_dir = std::env::temp_dir();
+        
+        // Detect app name for temp directory isolation
+        let app_suffix = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+            .map(|name| match name.as_str() {
+                "KatanB" => "katana_b".to_string(),
+                _ => "katana_a".to_string(),
+            })
+            .unwrap_or_else(|| "katana".to_string());
+        
         let cache_dirs = [
-            temp_dir.join("katana_mermaid_cache"),
-            temp_dir.join("katana_drawio_cache"),
+            temp_dir.join(format!("{app_suffix}_mermaid_cache")),
+            temp_dir.join(format!("{app_suffix}_drawio_cache")),
         ];
         for cache_dir in cache_dirs {
             let _ = std::fs::remove_dir_all(cache_dir);
@@ -296,6 +307,7 @@ mod tests {
         let tmp = TempDir::new().expect("Failed to create temp dir");
         let path = tmp.path().join("cache.json");
         let cache = DefaultCacheService::new(path);
+        // Use generic names for test (app name detection won't work in test context)
         let mermaid_cache = std::env::temp_dir().join("katana_mermaid_cache");
         let drawio_cache = std::env::temp_dir().join("katana_drawio_cache");
         std::fs::create_dir_all(&mermaid_cache).expect("mkdir mermaid");

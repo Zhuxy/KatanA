@@ -29,7 +29,7 @@ use katana_ui::shell::KatanaApp;
 #[cfg(not(test))]
 mod window_setup;
 #[cfg(not(test))]
-use window_setup::{initial_window_size, load_icon, min_window_size};
+use window_setup::{initial_window_size, min_window_size, window_icon};
 
 #[cfg(not(test))]
 fn main() -> eframe::Result<()> {
@@ -46,6 +46,11 @@ fn main() -> eframe::Result<()> {
     unsafe {
         katana_ui::native_menu::NativeMenuOps::set_process_name();
     }
+
+    let app_name = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+        .unwrap_or_else(|| "KatanA".to_string());
 
     let ai_registry = AiProviderRegistry::new();
 
@@ -67,8 +72,8 @@ fn main() -> eframe::Result<()> {
 
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("KatanA")
-            .with_icon(load_icon())
+            .with_title(&app_name)
+            .with_icon(window_icon())
             .with_inner_size(initial_window_size())
             .with_min_inner_size(min_window_size())
             .with_maximized(true),
@@ -77,7 +82,7 @@ fn main() -> eframe::Result<()> {
     };
 
     eframe::run_native(
-        "KatanA",
+        &app_name,
         native_options,
         Box::new(|cc| {
             GuiSetupOps::setup_fonts(&cc.egui_ctx);

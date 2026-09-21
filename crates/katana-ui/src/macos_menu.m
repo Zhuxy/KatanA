@@ -270,11 +270,29 @@ void katana_free_clipboard_image(unsigned char *bytes) {
     free(bytes);
 }
 
+static NSString *katana_get_effective_app_name(void) {
+    NSBundle *bundle = [NSBundle mainBundle];
+    NSString *name = [bundle objectForInfoDictionaryKey:@"CFBundleDisplayName"];
+    if (!name || [name length] == 0) {
+        name = [bundle objectForInfoDictionaryKey:@"CFBundleName"];
+    }
+    if (!name || [name length] == 0) {
+        name = [[NSProcessInfo processInfo] processName];
+    }
+    if (!name || [name length] == 0) {
+        name = @"KatanA";
+    }
+    return name;
+}
+
 /// Called from Rust at the very start of main(), before eframe creates the window.
 /// Must be called before the window server registers the process to ensure
-/// the Dock label shows "KatanA" instead of the binary name "katana".
+/// the Dock label shows the application name instead of the binary name.
 void katana_set_process_name(void) {
-    [[NSProcessInfo processInfo] setProcessName:@"KatanA"];
+    @autoreleasepool {
+        NSString *appName = katana_get_effective_app_name();
+        [[NSProcessInfo processInfo] setProcessName:appName];
+    }
 }
 
 /// Called from Rust: Builds the native menu bar.
@@ -283,11 +301,13 @@ void katana_setup_native_menu(void) {
     SEL action = @selector(menuAction:);
     katana_install_clipboard_image_paste_monitor();
 
+    NSString *appName = katana_get_effective_app_name();
+
     /* WHY: --- Application Menu --- */
-    NSMenu *appMenu = [[NSMenu alloc] initWithTitle:@"KatanA"];
+    NSMenu *appMenu = [[NSMenu alloc] initWithTitle:appName];
 
     NSMenuItem *aboutItem = [[NSMenuItem alloc]
-        initWithTitle:@"About KatanA"
+        initWithTitle:[NSString stringWithFormat:@"About %@", appName]
         action:action
         keyEquivalent:@""];
     [aboutItem setTarget:g_target];
@@ -307,9 +327,10 @@ void katana_setup_native_menu(void) {
     [appMenu addItem:[NSMenuItem separatorItem]];
 
     NSMenuItem *quitItem = [[NSMenuItem alloc]
-        initWithTitle:@"Quit KatanA"
+        initWithTitle:[NSString stringWithFormat:@"Quit %@", appName]
         action:@selector(terminate:)
         keyEquivalent:@"q"];
+    [quitItem setTarget:g_target];
     [appMenu addItem:quitItem];
     g_quit_item = quitItem;
 
@@ -780,14 +801,48 @@ void katana_update_menu_state(bool save_enabled, bool close_workspace_enabled, b
 
 static NSImage *g_app_icon = nil;
 
-/// Called from Rust: Sets the application and dock icon from PNG bytes.
+/// Called from Rust: Sets the application and dock icon.
+/// Prefers the .app bundle's icon (from Info.plist / icon.icns) so that dual-instance
+/// apps (such as KatanA and KatanB) retain their respective distinct icons.
+/// Falls back to the provided PNG bytes when running outside a bundle (e.g. `cargo run`).
 void katana_set_app_icon_png(const unsigned char *png_data, unsigned long png_len) {
     @autoreleasepool {
-        NSData *data = [NSData dataWithBytes:png_data length:png_len];
-        NSImage *image = [[NSImage alloc] initWithData:data];
-        if (image) {
-            g_app_icon = image;
-            [NSApp setApplicationIconImage:image];
+        // 1. If running inside a macOS .app bundle, load the bundle's icon
+        NSBundle *bundle = [NSBundle mainBundle];
+        NSString *iconFileName = [bundle objectForInfoDictionaryKey:@"CFBundleIconFile"];
+        if (iconFileName && [iconFileName length] > 0) {
+            NSString *iconPath = [bundle pathForResource:iconFileName ofType:nil];
+            if (!iconPath && ![iconFileName hasSuffix:@".icns"]) {
+                iconPath = [bundle pathForResource:iconFileName ofType:@"icns"];
+            }
+            if (iconPath) {
+                NSImage *image = [[NSImage alloc] initWithContentsOfFile:iconPath];
+                if (image) {
+                    g_app_icon = image;
+                    [NSApp setApplicationIconImage:image];
+                    return;
+                }
+            }
+        }
+
+        NSString *iconPath = [bundle pathForResource:@"icon" ofType:@"icns"];
+        if (iconPath) {
+            NSImage *image = [[NSImage alloc] initWithContentsOfFile:iconPath];
+            if (image) {
+                g_app_icon = image;
+                [NSApp setApplicationIconImage:image];
+                return;
+            }
+        }
+
+        // 2. Fallback: if not running inside a bundle, use the passed PNG bytes
+        if (png_data && png_len > 0) {
+            NSData *data = [NSData dataWithBytes:png_data length:png_len];
+            NSImage *image = [[NSImage alloc] initWithData:data];
+            if (image) {
+                g_app_icon = image;
+                [NSApp setApplicationIconImage:image];
+            }
         }
     }
 }

@@ -29,7 +29,6 @@ fn main() {
 
     if std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default() == "macos" {
         println!("cargo:rerun-if-changed=src/macos_menu.m");
-        println!("cargo:rerun-if-changed=Info.plist");
 
         cc::Build::new()
             .file("src/macos_menu.m")
@@ -37,11 +36,8 @@ fn main() {
             .compile("macos_menu");
 
         println!("cargo:rustc-link-lib=framework=Cocoa");
-        let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-        println!(
-            "cargo:rustc-link-arg=-Wl,-sectcreate,__TEXT,__info_plist,{}/Info.plist",
-            manifest_dir
-        );
+        // NOTE: 不再嵌入 Info.plist，让系统从 .app bundle 中读取
+        // 这样 KatanA 和 KatanB 可以有不同的图标和配置
     }
 
     if std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default() == "windows" {

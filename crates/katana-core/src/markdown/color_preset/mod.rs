@@ -67,27 +67,41 @@ impl DiagramColorPreset {
 
     pub fn default_proportional_fonts() -> Vec<&'static str> {
         vec![
+            // macOS CJK fonts (Japanese + Chinese + Korean)
             "/System/Library/Fonts/\u{30d2}\u{30e9}\u{30ae}\u{30ce}\u{89d2}\u{30b4}\u{30b7}\u{30c3}\u{30af} W3.ttc",
             "/System/Library/Fonts/Hiragino Sans GB.ttc",
             "/System/Library/Fonts/AquaKana.ttc",
+            "/System/Library/Fonts/STHeiti Medium.ttc",
+            "/System/Library/Fonts/STHeiti Light.ttc",
+            "/System/Library/Fonts/Supplemental/Songti.ttc",
+            // Windows CJK fonts
+            "C:/Windows/Fonts/simsun.ttc",
+            "C:/Windows/Fonts/msyh.ttc",
             "C:/Windows/Fonts/YuGothR.ttc",
             "C:/Windows/Fonts/yugothic.ttf",
             "C:/Windows/Fonts/meiryo.ttc",
             "C:/Windows/Fonts/segoeui.ttf",
+            // Linux CJK fonts
             "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
             "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
             "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+            "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+            // Fallback
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         ]
     }
 
     pub fn default_monospace_fonts() -> Vec<&'static str> {
         vec![
+            // macOS monospace
             "/System/Library/Fonts/Menlo.ttc",
             "/System/Library/Fonts/SFMono-Regular.otf",
             "/System/Library/Fonts/Monaco.ttf",
+            // Windows monospace
             "C:/Windows/Fonts/consola.ttf",
             "C:/Windows/Fonts/cour.ttf",
+            // Linux monospace
             "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
             "/usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf",
             "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",

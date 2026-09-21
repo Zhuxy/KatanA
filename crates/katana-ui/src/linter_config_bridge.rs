@@ -104,10 +104,21 @@ impl MarkdownLinterConfigOps {
     }
 
     fn global_config_path() -> PathBuf {
-        dirs::config_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("KatanA")
-            .join(".markdownlint.json")
+        let base = dirs::config_dir()
+            .unwrap_or_else(|| PathBuf::from("."));
+        
+        // Detect app name from executable
+        let app_name = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+            .unwrap_or_else(|| "KatanA".to_string());
+        
+        let config_dir = match app_name.as_str() {
+            "KatanB" => base.join("KatanB"),
+            _ => base.join("KatanA"),
+        };
+        
+        config_dir.join(".markdownlint.json")
     }
 
     fn workspace_json_path(state: &crate::app_state::AppState) -> Option<PathBuf> {

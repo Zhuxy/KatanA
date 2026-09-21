@@ -120,6 +120,23 @@ impl SystemFontLoader {
             );
         }
 
+        // Load all CJK fonts as fallbacks for better Chinese support
+        Self::load_all_valid_as_fallbacks(
+            &mut fonts,
+            proportional_candidates,
+            FontFamily::Proportional,
+        );
+        Self::load_all_valid_as_fallbacks(
+            &mut fonts,
+            proportional_candidates,
+            FontFamily::Name("MarkdownProportional".into()),
+        );
+        Self::load_all_valid_as_fallbacks(
+            &mut fonts,
+            monospace_candidates,
+            FontFamily::Monospace,
+        );
+
         if let (Some(path), Some(name)) = (custom_font_path, custom_font_name) {
             Self::inject_custom_font(&mut fonts, path, name);
         }

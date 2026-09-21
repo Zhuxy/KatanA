@@ -19,9 +19,20 @@ fn resolve_app_config_dir(
         .filter(|value| !value.is_empty())
         .map(PathBuf::from)
         .unwrap_or_else(|| {
-            platform_config_dir
-                .unwrap_or_else(|| PathBuf::from("."))
-                .join("KatanA")
+            let base = platform_config_dir
+                .unwrap_or_else(|| PathBuf::from("."));
+            
+            // Detect app name from executable path to support multiple instances
+            let app_name = std::env::current_exe()
+                .ok()
+                .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+                .unwrap_or_else(|| "KatanA".to_string());
+            
+            // Use app name as config directory suffix
+            match app_name.as_str() {
+                "KatanB" => base.join("KatanB"),
+                _ => base.join("KatanA"),
+            }
         })
 }
 

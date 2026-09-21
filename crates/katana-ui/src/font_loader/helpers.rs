@@ -31,6 +31,33 @@ impl SystemFontLoader {
         None
     }
 
+    /// Load all valid fonts from candidates as fallbacks
+    pub(super) fn load_all_valid_as_fallbacks(
+        fonts: &mut FontDefinitions,
+        candidates: &[&str],
+        family: FontFamily,
+    ) {
+        for &path in candidates {
+            let Ok(data) = fs::read(path) else { continue };
+            let name = std::path::Path::new(path)
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("cjk_font")
+                .to_string();
+            
+            // Skip if already loaded
+            if fonts.font_data.contains_key(&name) {
+                continue;
+            }
+            
+            let font_data = FontData::from_owned(data);
+            fonts
+                .font_data
+                .insert(name.clone(), std::sync::Arc::new(font_data));
+            Self::append_fallback(fonts, family.clone(), &name);
+        }
+    }
+
     pub(super) fn prepend_primary(fonts: &mut FontDefinitions, family: FontFamily, name: &str) {
         if let Some(list) = fonts.families.get_mut(&family) {
             list.insert(0, name.to_string());

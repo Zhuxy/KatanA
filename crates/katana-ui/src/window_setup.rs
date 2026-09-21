@@ -11,6 +11,7 @@ pub(super) fn min_window_size() -> egui::Vec2 {
     egui::vec2(MIN_WIDTH, MIN_HEIGHT)
 }
 
+#[cfg(not(target_os = "macos"))]
 pub(super) fn load_icon() -> std::sync::Arc<egui::IconData> {
     let icon_bytes = include_bytes!("../../../assets/icon.iconset/icon_512x512.png");
     let image = image::load_from_memory(icon_bytes)
@@ -24,3 +25,17 @@ pub(super) fn load_icon() -> std::sync::Arc<egui::IconData> {
         height,
     })
 }
+
+/// On macOS, passing an empty IconData signals eframe's AppTitleIconSetter
+/// not to fall back to eframe's built-in default icon, preventing eframe from
+/// overwriting the macOS application / Dock icon with the generic egui icon.
+#[cfg(target_os = "macos")]
+pub(super) fn window_icon() -> std::sync::Arc<egui::IconData> {
+    std::sync::Arc::new(egui::IconData::default())
+}
+
+#[cfg(not(target_os = "macos"))]
+pub(super) fn window_icon() -> std::sync::Arc<egui::IconData> {
+    load_icon()
+}
+
