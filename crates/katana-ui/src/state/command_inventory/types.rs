@@ -16,7 +16,7 @@ impl CommandGroup {
     pub fn localized_name(self) -> String {
         let i18n = I18nOps::get();
         match self {
-            Self::App => "KatanA".to_string(), // WHY: Main app menu equivalent
+            Self::App => crate::about_info::current_app_name().to_string(), // WHY: Main app menu equivalent
             /* WHY: "Edit" group is used for Markdown authoring commands. */
             Self::Edit => i18n.settings.shortcuts.edit.clone(),
             Self::File => i18n.menu.file.clone(),

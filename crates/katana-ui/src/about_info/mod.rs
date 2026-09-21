@@ -1,6 +1,36 @@
 pub const APP_DISPLAY_NAME: &str = "KatanA";
 
+pub fn current_app_name() -> &'static str {
+    static APP_NAME: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    let name = APP_NAME.get_or_init(|| {
+        if let Ok(val) = std::env::var("KATANA_APP_NAME") {
+            if !val.is_empty() {
+                return val;
+            }
+        }
+        std::env::current_exe()
+            .ok()
+            .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+            .map(|n| {
+                let stem = n.strip_suffix(".exe").unwrap_or(&n);
+                match stem {
+                    "KatanB" => "KatanB".to_string(),
+                    _ => APP_DISPLAY_NAME.to_string(),
+                }
+            })
+            .unwrap_or_else(|| APP_DISPLAY_NAME.to_string())
+    });
+    name.as_str()
+}
+
 pub const APP_PRODUCT_NAME: &str = "KatanA Desktop";
+
+pub fn current_product_name() -> &'static str {
+    match current_app_name() {
+        "KatanB" => "KatanB Desktop",
+        _ => APP_PRODUCT_NAME,
+    }
+}
 
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -39,7 +69,7 @@ impl AboutInfoOps {
 
     pub fn about_info() -> AboutInfo {
         AboutInfo {
-            product_name: APP_PRODUCT_NAME,
+            product_name: current_product_name(),
             version: APP_VERSION,
             build: APP_BUILD,
             copyright: APP_COPYRIGHT,
@@ -63,6 +93,11 @@ mod tests {
     #[test]
     fn display_name_is_katana() {
         assert_eq!(APP_DISPLAY_NAME, "KatanA");
+    }
+
+    #[test]
+    fn current_app_name_defaults_to_katana() {
+        assert_eq!(current_app_name(), "KatanA");
     }
 
     #[test]

@@ -30,3 +30,14 @@ fn app_title_keeps_active_document_context() {
         "sample.ja.md (assets/fixtures/sample.ja.md) - KatanA"
     );
 }
+
+#[test]
+fn app_title_ends_with_current_app_name() {
+    let app = crate::about_info::current_app_name();
+    let title = ShellLogicOps::format_document_title(
+        "sample.ja.md",
+        "assets/fixtures/sample.ja.md",
+        "Release Notes",
+    );
+    assert!(title.ends_with(&format!(" - {app}")));
+}

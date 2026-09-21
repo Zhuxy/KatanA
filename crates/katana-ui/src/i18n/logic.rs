@@ -137,7 +137,13 @@ fn get_messages_for_lang(lang: &str) -> &'static I18nMessages {
 }
 
 fn parse_messages_for_lang(lang: &str, json: &str) -> I18nMessages {
-    serde_json::from_str(json).unwrap_or_else(|e| panic!("BUG: {lang}.json is invalid: {e}"))
+    let app_name = crate::about_info::current_app_name();
+    if app_name != "KatanA" {
+        let replaced = json.replace("KatanA", app_name);
+        serde_json::from_str(&replaced).unwrap_or_else(|e| panic!("BUG: {lang}.json is invalid: {e}"))
+    } else {
+        serde_json::from_str(json).unwrap_or_else(|e| panic!("BUG: {lang}.json is invalid: {e}"))
+    }
 }
 
 fn read_guard(lock: &RwLock<String>) -> RwLockReadGuard<'_, String> {

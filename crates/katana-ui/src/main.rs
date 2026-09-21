@@ -40,17 +40,13 @@ fn main() -> eframe::Result<()> {
         )
         .init();
 
-    tracing::info!("Starting KatanA");
+    let app_name = katana_ui::about_info::current_app_name().to_string();
+    tracing::info!("Starting {}", app_name);
 
     #[cfg(target_os = "macos")]
     unsafe {
         katana_ui::native_menu::NativeMenuOps::set_process_name();
     }
-
-    let app_name = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
-        .unwrap_or_else(|| "KatanA".to_string());
 
     let ai_registry = AiProviderRegistry::new();
 

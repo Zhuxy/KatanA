@@ -6,7 +6,7 @@ pub(super) struct GlobalAppMenu;
 
 impl GlobalAppMenu {
     pub(super) fn render(ui: &mut egui::Ui, context: &mut GlobalMenuContext<'_>) {
-        crate::widgets::MenuButtonOps::show(ui, "KatanA", |ui| {
+        crate::widgets::MenuButtonOps::show(ui, crate::about_info::current_app_name(), |ui| {
             let about = context.i18n().menu.about.clone();
             context.action_item(ui, "help.about", &about, AppAction::ToggleAbout);
             let check_updates = context.i18n().menu.check_updates.clone();

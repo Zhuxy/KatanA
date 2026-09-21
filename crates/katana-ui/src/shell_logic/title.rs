@@ -7,21 +7,23 @@ impl ShellLogicOps {
     }
 
     pub fn format_document_title(fname: &str, rel: &str, release_notes: &str) -> String {
+        let app = crate::about_info::current_app_name();
         if fname == release_notes {
-            return format!("{release_notes} - KatanA");
+            return format!("{release_notes} - {app}");
         }
-        format!("{fname} ({rel}) - KatanA")
+        format!("{fname} ({rel}) - {app}")
     }
 
     pub fn format_workspace_window_title(ws_root: Option<&Path>) -> String {
+        let app = crate::about_info::current_app_name();
         let Some(root) = ws_root else {
-            return "KatanA".to_string();
+            return app.to_string();
         };
         let workspace_name = root
             .file_name()
             .and_then(|name| name.to_str())
             .filter(|name| !name.is_empty())
-            .unwrap_or("KatanA");
-        format!("{workspace_name} - KatanA")
+            .unwrap_or(app);
+        format!("{workspace_name} - {app}")
     }
 }
