@@ -47,7 +47,7 @@ impl<'a, 'b, 'c> FileEntryNode<'a, 'b, 'c> {
         resp = if is_dragged {
             resp.on_hover_cursor(egui::CursorIcon::Grabbing)
         } else {
-            resp.on_hover_cursor(egui::CursorIcon::Grab)
+            resp.on_hover_cursor(egui::CursorIcon::Default)
         };
         let icon = if entry.is_markdown() {
             crate::icon::Icon::Markdown

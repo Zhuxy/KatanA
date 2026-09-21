@@ -42,7 +42,7 @@ impl<'a, 'b, 'c> DirectoryEntryNode<'a, 'b, 'c> {
         resp = if ui.ctx().is_being_dragged(resp.id) {
             resp.on_hover_cursor(egui::CursorIcon::Grabbing)
         } else {
-            resp.on_hover_cursor(egui::CursorIcon::Grab)
+            resp.on_hover_cursor(egui::CursorIcon::Default)
         };
         if resp.drag_started() {
             resp.dnd_set_drag_payload(path.to_path_buf());
