@@ -29,7 +29,7 @@ impl<'a> PreviewSidePanels<'a> {
     }
 }
 
-fn decorate_toggle_response(
+pub(super) fn decorate_toggle_response(
     ui: &egui::Ui,
     response: egui::Response,
     tooltip: &str,

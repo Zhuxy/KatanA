@@ -1,6 +1,7 @@
 use accesskit::Role;
 use egui_kittest::kittest::Queryable;
 use katana_ui::app_state::{AppAction, ViewMode};
+use katana_ui::i18n::I18nOps;
 
 use crate::integration::harness_utils::{fresh_temp_dir, setup_harness, wait_for_workspace_load};
 
@@ -340,4 +341,68 @@ fn test_integration_update_buffer() {
     harness.run_steps(10);
 
     assert!(harness.query_all_by_label("Original Updated").count() > 0);
+}
+
+#[test]
+fn test_integration_sidebar_exposes_direct_three_state_view_mode_toggle() {
+    /* WHY: The right sidebar must expose Preview/Code/Split as a direct three-state
+     * toggle so users never have to open the tools popup to switch the document layout. */
+    let mut harness = setup_harness();
+    harness.step();
+
+    let temp_dir = fresh_temp_dir("katana_test_sidebar_view_mode");
+    let test_file = temp_dir.join("test_sidebar_mode.md");
+    std::fs::write(&test_file, "# Sidebar View Mode").unwrap();
+
+    harness
+        .state_mut()
+        .trigger_action(AppAction::OpenWorkspace(temp_dir));
+    wait_for_workspace_load(&mut harness);
+    harness
+        .state_mut()
+        .trigger_action(AppAction::SelectDocument(test_file.canonicalize().unwrap()));
+    harness.step();
+
+    let code_label = I18nOps::get().view_mode.code.clone();
+    let split_label = I18nOps::get().view_mode.split.clone();
+    let preview_label = I18nOps::get().view_mode.preview.clone();
+
+    assert_eq!(
+        harness.state_mut().app_state_mut().active_view_mode(),
+        ViewMode::PreviewOnly
+    );
+
+    /* WHY: Direct selection must work without toggling the tools panel open. */
+    harness
+        .query_all_by_label(&code_label)
+        .next()
+        .expect("sidebar Code view mode button")
+        .click();
+    harness.run_steps(2);
+    assert_eq!(
+        harness.state_mut().app_state_mut().active_view_mode(),
+        ViewMode::CodeOnly
+    );
+
+    harness
+        .query_all_by_label(&split_label)
+        .next()
+        .expect("sidebar Split view mode button")
+        .click();
+    harness.run_steps(2);
+    assert_eq!(
+        harness.state_mut().app_state_mut().active_view_mode(),
+        ViewMode::Split
+    );
+
+    harness
+        .query_all_by_label(&preview_label)
+        .next()
+        .expect("sidebar Preview view mode button")
+        .click();
+    harness.run_steps(2);
+    assert_eq!(
+        harness.state_mut().app_state_mut().active_view_mode(),
+        ViewMode::PreviewOnly
+    );
 }

@@ -47,6 +47,9 @@ impl<'a> PreviewSidePanels<'a> {
                     ui.spacing_mut().item_spacing.y = PREVIEW_SIDE_BAR_SPACING;
                     let i18n = crate::i18n::I18nOps::get();
 
+                    /* WHY: Always-visible view mode selector avoids the tools hover menu. */
+                    self.render_view_mode_selector(ui);
+
                     let toc_visible = self.app.state.config.settings.settings().layout.toc_visible;
                     if toc_visible {
                         let toc_available = super::TocAvailability::for_path(

@@ -11,9 +11,8 @@ mod side_panel_toggle;
 mod side_panel_tools;
 mod side_panel_tools_inner;
 mod side_panel_types;
+mod side_panel_view_mode;
 mod side_panels;
-mod tangochou;
-mod tangochou_consts;
 mod toc_availability;
 pub mod types;
 
