@@ -38,15 +38,13 @@ impl NormalizeFonts {
             y_offset: LINUX_Y_OFFSET,
             ..Default::default()
         };
-        let mono_fallback_name = SystemFontLoader::load_first_valid(
+        SystemFontLoader::load_all_valid_as_tweaked_fallbacks(
             &mut self.fonts,
             proportional_candidates,
-            Some(tweaked_fallback),
+            FontFamily::Monospace,
+            tweaked_fallback,
             "_mono_fallback",
         );
-        if let Some(name) = &mono_fallback_name {
-            SystemFontLoader::insert_after_primary(&mut self.fonts, FontFamily::Monospace, name);
-        }
     }
 
     pub fn is_normalized(&self) -> bool {

@@ -331,3 +331,114 @@ fn test_font_jitter_8_inline_code_cross_family() {
         diff
     );
 }
+
+#[test]
+#[cfg(target_os = "macos")]
+fn test_font_jitter_9_simplified_chinese_fallback_matches_primary_baseline() {
+    /* WHY: Simplified-Chinese-only glyphs (e.g. 标/输) are absent from the Japanese
+     * primary face and fall back to another CJK font. If that fallback is loaded without
+     * the primary face's y_offset tweak, the glyphs visibly jump up/down inside one line. */
+    let preset = DiagramColorPreset::current();
+    let fonts = SystemFontLoader::build_font_definitions(
+        &preset.proportional_font_candidates,
+        &preset.monospace_font_candidates,
+        &preset.emoji_font_candidates,
+        None,
+        None,
+    );
+    let ctx = Context::default();
+    ctx.set_fonts(fonts.into_inner());
+
+    /* WHY: 指 exists in the Japanese primary face; 标 only exists in the Chinese fallback. */
+    let text = "\u{6307}\u{6807}".to_string();
+    let mut primary_glyph = None;
+    let mut fallback_glyph = None;
+
+    crate::test_ui::TestUiOps::run(&ctx, Default::default(), |ctx| {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            let mut job = egui::text::LayoutJob::default();
+            job.append(
+                &text,
+                0.0,
+                egui::TextFormat::simple(egui::FontId::proportional(20.0), egui::Color32::WHITE),
+            );
+            let galley = ui.fonts_mut(|f| f.layout_job(job));
+            for glyph in &galley.rows[0].glyphs {
+                match glyph.chr {
+                    '\u{6307}' => primary_glyph = Some(*glyph),
+                    '\u{6807}' => fallback_glyph = Some(*glyph),
+                    _ => {}
+                }
+            }
+        });
+    });
+
+    let primary_glyph = primary_glyph.expect("primary glyph 指 not found");
+    let fallback_glyph = fallback_glyph.expect("fallback glyph 标 not found");
+
+    /* WHY: The pen sits on the baseline, so baseline + uv offset.y is the drawn ink top. */
+    let ink_top = |glyph: &egui::epaint::text::Glyph| glyph.pos.y + glyph.uv_rect.offset.y;
+    let primary_top = ink_top(&primary_glyph);
+    let fallback_top = ink_top(&fallback_glyph);
+    let diff = (primary_top - fallback_top).abs();
+
+    assert!(
+        diff <= 1.5,
+        "\u{30ac}\u{30bf}\u{30c4}\u{30ad} (Jitter): primary '指' ink top={primary_top} vs Chinese fallback '标' ink top={fallback_top} (diff {diff}). \
+         CJK fallback faces must reuse the primary face's y_offset tweak so mixed Chinese/Japanese text shares one baseline."
+    );
+}
+
+#[test]
+#[cfg(target_os = "macos")]
+fn test_font_jitter_10_monospace_resolves_simplified_chinese_glyphs() {
+    /* WHY: Source/code mode renders with the Monospace family. If no Simplified-Chinese
+     * capable fallback is registered there, Chinese-only glyphs fall back to the `.notdef`
+     * "tofu" box even though the preview shows them through the Proportional family. */
+    let preset = DiagramColorPreset::current();
+    let fonts = SystemFontLoader::build_font_definitions(
+        &preset.proportional_font_candidates,
+        &preset.monospace_font_candidates,
+        &preset.emoji_font_candidates,
+        None,
+        None,
+    );
+    let ctx = Context::default();
+    ctx.set_fonts(fonts.into_inner());
+
+    /* WHY: U+E000 is a private-use code point absent from every face, so its glyph is the
+     * `.notdef` box. 标 must not reuse that same box. */
+    let text = "\u{6807}\u{e000}".to_string();
+    let mut chinese_glyph = None;
+    let mut notdef_glyph = None;
+
+    crate::test_ui::TestUiOps::run(&ctx, Default::default(), |ctx| {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            let mut job = egui::text::LayoutJob::default();
+            job.append(
+                &text,
+                0.0,
+                egui::TextFormat::simple(egui::FontId::monospace(20.0), egui::Color32::WHITE),
+            );
+            let galley = ui.fonts_mut(|f| f.layout_job(job));
+            for glyph in &galley.rows[0].glyphs {
+                match glyph.chr {
+                    '\u{6807}' => chinese_glyph = Some(*glyph),
+                    '\u{e000}' => notdef_glyph = Some(*glyph),
+                    _ => {}
+                }
+            }
+        });
+    });
+
+    let chinese = chinese_glyph.expect("Chinese glyph 标 not found");
+    let notdef = notdef_glyph.expect("notdef glyph U+E000 not found");
+    let chinese_rect = (chinese.uv_rect.offset, chinese.uv_rect.size);
+    let notdef_rect = (notdef.uv_rect.offset, notdef.uv_rect.size);
+
+    assert_ne!(
+        chinese_rect, notdef_rect,
+        "\u{6587}\u{5b57}\u{5316}\u{3051} (Tofu): '标' and missing U+E000 share the same .notdef box {chinese_rect:?}. \
+         Add Simplified-Chinese fallbacks to the Monospace family so source mode is readable."
+    );
+}

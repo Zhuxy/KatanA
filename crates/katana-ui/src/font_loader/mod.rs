@@ -58,8 +58,12 @@ impl SystemFontLoader {
             y_offset: LINUX_Y_OFFSET,
             ..Default::default()
         };
-        let prop_name =
-            Self::load_first_valid(&mut fonts, proportional_candidates, Some(prop_tweak), "");
+        let prop_name = Self::load_first_valid(
+            &mut fonts,
+            proportional_candidates,
+            Some(prop_tweak.clone()),
+            "",
+        );
 
         let markdown_tweak = egui::FontTweak {
             coords: Default::default(),
@@ -71,7 +75,7 @@ impl SystemFontLoader {
         let markdown_name = Self::load_first_valid(
             &mut fonts,
             proportional_candidates,
-            Some(markdown_tweak),
+            Some(markdown_tweak.clone()),
             "_markdown",
         );
 
@@ -82,8 +86,12 @@ impl SystemFontLoader {
             y_offset: LINUX_Y_OFFSET,
             ..Default::default()
         };
-        let mono_name =
-            Self::load_first_valid(&mut fonts, monospace_candidates, Some(mono_tweak), "");
+        let mono_name = Self::load_first_valid(
+            &mut fonts,
+            monospace_candidates,
+            Some(mono_tweak.clone()),
+            "",
+        );
 
         if let Some(name) = &prop_name {
             Self::prepend_primary(&mut fonts, FontFamily::Proportional, name);
@@ -125,16 +133,19 @@ impl SystemFontLoader {
             &mut fonts,
             proportional_candidates,
             FontFamily::Proportional,
+            Some(prop_tweak),
         );
         Self::load_all_valid_as_fallbacks(
             &mut fonts,
             proportional_candidates,
             FontFamily::Name("MarkdownProportional".into()),
+            Some(markdown_tweak),
         );
         Self::load_all_valid_as_fallbacks(
             &mut fonts,
             monospace_candidates,
             FontFamily::Monospace,
+            Some(mono_tweak),
         );
 
         if let (Some(path), Some(name)) = (custom_font_path, custom_font_name) {
