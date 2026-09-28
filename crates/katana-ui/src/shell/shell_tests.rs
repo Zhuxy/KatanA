@@ -1382,6 +1382,7 @@ mod tests_extra {
             file_dialog: egui_file_dialog::FileDialog::new(),
             pending_dialog_action: None,
             pending_html_preview_refresh: None,
+            pending_anchor_navigation: None,
             html_preview_observer: None,
         }
     }

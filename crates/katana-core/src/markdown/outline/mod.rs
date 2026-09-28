@@ -1,4 +1,6 @@
+mod anchor;
 mod types;
+pub use anchor::*;
 pub use types::*;
 
 use comrak::nodes::{AstNode, NodeValue};

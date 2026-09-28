@@ -115,14 +115,23 @@ impl AppFrameOps {
                 continue;
             }
 
-            let mut path = std::path::PathBuf::from(url);
-            if path.is_relative()
-                && let Some(parent) = app
-                    .state
-                    .active_document()
-                    .and_then(|doc| doc.path.parent())
-            {
-                path = parent.join(path);
+            /* WHY: A markdown link such as `notes.md#cap-004--queries` addresses a heading
+             * inside the target document. The fragment must not become part of the file path. */
+            let (link_path, anchor) = crate::app::AnchorNavigationOps::split_fragment(url);
+            if link_path.is_empty() {
+                if let Some(anchor) = anchor
+                    && let Some(active_path) = app.state.active_path()
+                {
+                    crate::app::AnchorNavigationOps::queue(app, active_path, anchor);
+                }
+                continue;
+            }
+
+            let path = crate::app::AnchorNavigationOps::resolve_link_path(app, link_path);
+            if let Some(anchor) = anchor {
+                crate::app::AnchorNavigationOps::queue(app, path.clone(), anchor);
+            } else {
+                crate::app::AnchorNavigationOps::clear(app);
             }
             app.process_action(ctx, AppAction::SelectDocument(path));
         }

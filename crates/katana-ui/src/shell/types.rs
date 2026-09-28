@@ -25,6 +25,15 @@ pub(crate) struct ExportTask {
     pub open_on_complete: bool,
 }
 
+/* WHY: A markdown link such as `other.md#cap-004--queries` addresses a heading inside another
+ * document. The fragment is stripped from the path before the document is opened, then the
+ * heading is located once the target preview pane has been rendered. */
+pub(crate) struct PendingAnchorNavigation {
+    pub path: std::path::PathBuf,
+    pub anchor: String,
+    pub queued_at: std::time::Instant,
+}
+
 pub(crate) struct PendingHtmlPreviewRefresh {
     pub path: std::path::PathBuf,
     pub due_at: std::time::Instant,
@@ -79,6 +88,7 @@ pub struct KatanaApp {
 
     pub(crate) file_dialog: egui_file_dialog::FileDialog,
     pub(crate) pending_dialog_action: Option<AppAction>,
+    pub(crate) pending_anchor_navigation: Option<PendingAnchorNavigation>,
     pub(crate) pending_html_preview_refresh: Option<PendingHtmlPreviewRefresh>,
     pub(crate) html_preview_observer: Option<crate::html_preview_observer::HtmlPreviewObserver>,
 }

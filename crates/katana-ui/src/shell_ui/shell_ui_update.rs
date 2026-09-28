@@ -64,6 +64,9 @@ impl KatanaApp {
         self.poll_linter_docs(ctx);
         self.poll_url_source(ctx);
         self.poll_html_browser_navigation(ctx);
+        /* WHY: A link with a `#fragment` is resolved into a preview scroll request as soon as
+         * the target document's preview pane exists. */
+        crate::app::AnchorNavigationOps::apply_pending(self);
         self.tick_diagnostics(ctx);
 
         let editor_focused = matches!(

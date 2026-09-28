@@ -1,4 +1,5 @@
 pub mod action;
+pub(crate) mod anchor_navigation;
 pub(crate) mod diff_review;
 mod diff_review_apply;
 mod diff_review_apply_helpers;
@@ -28,6 +29,7 @@ pub(crate) mod url_source;
 pub mod workspace;
 
 pub(crate) use action::ActionOps;
+pub(crate) use anchor_navigation::AnchorNavigationOps;
 pub(crate) use diff_review::DiffReviewActionOps;
 pub(crate) use diff_review::LintFixReviewPath;
 pub(crate) use document_contract::DocumentOps;
