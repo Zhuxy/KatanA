@@ -15,6 +15,9 @@ impl PreviewPane {
         self.document_surface = None;
         self.document_failure = None;
         self.html_browser = None;
+        /* WHY: A newly rendered source invalidates the heading rects the armed jump relies on,
+         * and the target heading may no longer exist, so the jump is dropped. */
+        super::heading_jump::HeadingJumpOps::release(self);
         let preserved_fullscreen = force.then(|| self.preservable_local_fullscreen()).flatten();
         if force {
             self.commonmark_cache = CommonMarkCache::default();

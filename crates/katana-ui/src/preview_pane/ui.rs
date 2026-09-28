@@ -129,8 +129,6 @@ impl PreviewPane {
             }
         }
 
-        self.scroll_request = None;
-
         let ctx = ui.ctx().clone();
         self.handle_fullscreen_request(fullscreen_request, Some(&ctx));
 

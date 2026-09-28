@@ -1,5 +1,8 @@
 mod content;
 mod content_html_browser;
+#[cfg(test)]
+#[path = "content_tests.rs"]
+mod content_tests;
 mod logic;
 mod logic_linter_docs;
 mod side_panel_export;

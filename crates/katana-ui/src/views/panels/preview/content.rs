@@ -3,9 +3,18 @@ mod constructor;
 use super::types::*;
 use super::{content_html_browser::show_html_browser_content, types::PreviewLogicOps};
 use crate::app_state::AppAction;
+use crate::preview_pane::heading_jump::HeadingJumpOps;
 use eframe::egui;
 
 const BACK_TO_TOP_THRESHOLD: f32 = 400.0;
+
+/// WHY: A scrollbar drag changes the offset without any wheel event, so it needs its own check.
+fn preview_scrollbar_dragged(ctx: &egui::Context, path: Option<&std::path::Path>) -> bool {
+    let Some(path) = path else {
+        return false;
+    };
+    ctx.dragged_id() == Some(egui::Id::new(("preview_scroll_area", path)))
+}
 
 impl<'a> PreviewContent<'a> {
     pub fn show(self, ui: &mut egui::Ui) {
@@ -48,6 +57,12 @@ impl<'a> PreviewContent<'a> {
             return;
         }
 
+        /* WHY: Sample the sync source before the scroll area runs: `update_scroll_sync` consumes
+         * it at the end of the frame, so the heading jump has to decide from this snapshot. */
+        let editor_drove_scroll = scroll_sync
+            && scroll.source == crate::app_state::ScrollSource::Editor
+            && scroll.scroll_to_line.is_none();
+
         /* WHY: Check for forced scroll target from Sync System or Navigation. */
         let mut forced_offset = PreviewLogicOps::compute_forced_offset(
             scroll_sync,
@@ -57,18 +72,14 @@ impl<'a> PreviewContent<'a> {
             ui.available_height(),
         );
 
-        if preview.scroll_request == Some(0) {
-            forced_offset = Some(0.0);
-            preview.scroll_request = None;
-        } else if let Some(idx) = preview.scroll_request
-            && let Some(offset) = PreviewLogicOps::heading_scroll_offset(
-                idx,
-                &preview.anchor_map,
-                preview.content_top_y,
-            )
+        /* WHY: An armed heading jump (table of contents or `#anchor` link) outranks the
+         * scroll sync and is re-derived every frame, so a later layout change cannot
+         * silently drop it. It stays armed until the user scrolls. */
+        if let Some((index, offset)) =
+            HeadingJumpOps::resolve_offset(preview, preview.content_top_y)
         {
             forced_offset = Some(offset);
-            preview.scroll_request = None;
+            HeadingJumpOps::note_applied(preview, index, offset);
         }
 
         let mut scroll_area = egui::ScrollArea::vertical()
@@ -158,6 +169,25 @@ impl<'a> PreviewContent<'a> {
                 output.inner.content_size.y,
                 output.inner.inner_rect.height(),
                 output.inner.state.offset.y,
+            );
+        }
+
+        /* WHY: Release the sticky heading jump once the user scrolls (wheel or scrollbar drag)
+         * or once another scroll driver (a search jump) takes over. */
+        if HeadingJumpOps::is_armed(preview) {
+            let applied_offset = output.inner.state.offset.y;
+            let user_scrolled = ui.input(|i| i.smooth_scroll_delta.y.abs() > 0.01)
+                || preview_scrollbar_dragged(ui.ctx(), document.map(|doc| doc.path.as_path()));
+            let other_driver_active = scroll.scroll_to_line.is_some()
+                || scroll.toc_scroll_to_line.is_some()
+                || editor_drove_scroll;
+            HeadingJumpOps::settle(
+                preview,
+                Some(applied_offset),
+                output.inner.content_size.y,
+                output.inner.inner_rect.height(),
+                user_scrolled,
+                other_driver_active,
             );
         }
 

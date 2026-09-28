@@ -37,7 +37,15 @@ pub struct PreviewPane {
     pub block_anchors: Vec<(std::ops::Range<usize>, egui::Rect)>,
     pub content_top_y: f32,
     pub visible_rect: Option<egui::Rect>,
+    /// WHY: Sticky heading target. Set by the table of contents and by `#anchor` link
+    /// navigation. While armed, the preview keeps forcing the offset that puts this heading
+    /// at the top of the viewport, so later layout changes (a panel opening, a floating
+    /// overlay closing, a resize) cannot silently drop the jump. Released by user scrolling,
+    /// by a new document render, or by another scroll driver taking over.
     pub scroll_request: Option<usize>,
+    /// Offset forced by the armed heading jump in the previous frame, used to detect that
+    /// the user scrolled the preview away from the target.
+    pub heading_jump_applied: Option<f32>,
     pub render_rx: Option<std::sync::mpsc::Receiver<RenderMessage>>,
     pub is_loading: bool,
     pub cancel_token: std::sync::Arc<std::sync::atomic::AtomicBool>,

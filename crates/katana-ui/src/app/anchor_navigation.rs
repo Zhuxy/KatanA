@@ -136,7 +136,9 @@ impl AnchorNavigationOps {
         if let Some(index) =
             HeadingAnchorOps::find_heading_index(&pane.outline_items, &pending.anchor)
         {
-            pane.scroll_request = Some(index);
+            /* WHY: A sticky jump keeps the heading at the top even if the preview layout shifts
+             * (lazy sections finishing, a panel opening) in the frames right after the click. */
+            crate::preview_pane::heading_jump::HeadingJumpOps::request(pane, index);
         }
     }
 }
@@ -218,6 +220,10 @@ mod tests {
             .find(|preview| preview.path == target_path)
             .expect("target preview pane");
         assert_eq!(preview.pane.scroll_request, Some(1));
+        assert!(
+            crate::preview_pane::heading_jump::HeadingJumpOps::is_armed(&preview.pane),
+            "the fragment must arm a sticky heading jump, not a one-shot offset"
+        );
         assert!(app.pending_anchor_navigation.is_none());
     }
 

@@ -31,6 +31,7 @@ mod document_surface;
 pub mod fullscreen;
 pub mod fullscreen_local;
 pub mod fullscreen_svg;
+pub mod heading_jump;
 mod image_html_surface;
 mod image_raster;
 pub mod slideshow;

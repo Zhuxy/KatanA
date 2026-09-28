@@ -1314,4 +1314,128 @@ mod tests {
             "RefreshDiagrams must clear image caches before rerendering preview"
         );
     }
+    /// Full eframe harness used by the end-to-end link navigation test.
+    struct FullAppHarness {
+        app: Option<KatanaApp>,
+    }
+
+    impl eframe::App for FullAppHarness {
+        fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
+            if let Some(app) = self.app.as_mut() {
+                app.ui(ui, frame);
+            }
+        }
+    }
+
+    fn full_app_harness() -> egui_kittest::Harness<'static, FullAppHarness> {
+        use egui_kittest::Harness;
+        let preset = katana_core::markdown::color_preset::DiagramColorPreset::current();
+        Harness::builder()
+            .with_size(egui::vec2(1400.0, 900.0))
+            .build_eframe(move |cc| {
+                crate::font_loader::SystemFontLoader::setup_fonts(&cc.egui_ctx, preset, None, None);
+                let mut state = AppState::new(
+                    Default::default(),
+                    Default::default(),
+                    Default::default(),
+                    std::sync::Arc::new(katana_platform::InMemoryCacheService::default()),
+                );
+                state.config.settings.settings_mut().terms_accepted_version =
+                    Some(crate::about_info::APP_VERSION.to_string());
+                state.config.settings.settings_mut().updates.previous_app_version =
+                    Some(crate::about_info::APP_VERSION.to_string());
+                let mut app = KatanaApp::new(state);
+                app.skip_splash();
+                app.disable_update_check_for_test();
+                app.disable_changelog_popup_for_test();
+                FullAppHarness { app: Some(app) }
+            })
+    }
+
+    /// Y position of a rendered label inside the preview pane (right of the explorer sidebar).
+    fn preview_label_y(harness: &egui_kittest::Harness<FullAppHarness>, text: &str) -> Option<f32> {
+        use egui_kittest::kittest::Queryable as _;
+        harness
+            .query_all_by_label_contains(text)
+            .map(|n| n.rect())
+            .filter(|r| r.min.x > 240.0)
+            .map(|r| r.min.y)
+            .min_by(|a, b| a.partial_cmp(b).unwrap())
+    }
+
+    #[test]
+    fn markdown_link_with_fragment_opens_the_target_document_at_that_heading() {
+        use egui_kittest::kittest::Queryable as _;
+
+        let dir = tempfile::tempdir().unwrap();
+        let filler = "filler paragraph for scrolling\n\n".repeat(40);
+        let target_path = dir.path().join("target.md");
+        std::fs::write(
+            &target_path,
+            format!(
+                "# Overview\n\n{filler}\n## CAP-001 — Install the app\n\nTARGET-BELOW-MARKER\n\n{filler}"
+            ),
+        )
+        .unwrap();
+        let index_path = dir.path().join("index.md");
+        std::fs::write(
+            &index_path,
+            "[jump to CAP-001](target.md#cap-001--install-the-app)\n",
+        )
+        .unwrap();
+
+        let mut harness = full_app_harness();
+        for _ in 0..6 {
+            harness.step();
+        }
+        harness
+            .state_mut()
+            .app
+            .as_mut()
+            .unwrap()
+            .trigger_action(crate::app_state::AppAction::SelectDocument(index_path));
+        for _ in 0..20 {
+            harness.step();
+        }
+        assert!(
+            preview_label_y(&harness, "jump to CAP-001").is_some(),
+            "the link must be visible in the preview before it is clicked"
+        );
+
+        let link = harness
+            .query_by_label_contains("jump to CAP-001")
+            .expect("link node in the preview");
+        link.click();
+        for _ in 0..24 {
+            harness.step();
+        }
+
+        let active = harness
+            .state_mut()
+            .app
+            .as_ref()
+            .unwrap()
+            .state
+            .active_path()
+            .expect("an active document");
+        assert_eq!(
+            active.file_name().and_then(|n| n.to_str()),
+            Some("target.md"),
+            "the link must open the target document"
+        );
+
+        let heading_y = preview_label_y(&harness, "CAP-001 — Install the app")
+            .expect("the target heading must be rendered inside the preview viewport");
+        let marker_y = preview_label_y(&harness, "TARGET-BELOW-MARKER")
+            .expect("content below the target heading must be visible");
+        assert!(
+            heading_y < 400.0,
+            "the target heading must be scrolled to the top of the preview, got y={heading_y}"
+        );
+        assert!(
+            marker_y > heading_y,
+            "the paragraph below the heading must follow it, heading_y={heading_y} marker_y={marker_y}"
+        );
+    }
+
 }

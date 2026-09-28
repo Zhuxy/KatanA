@@ -18,6 +18,11 @@ pub struct ScrollState {
     pub preview_max: f32,
     pub editor_echo: SyncEcho,
     pub preview_echo: SyncEcho,
+    /* WHY: Set when the editor is asked to follow a jump (`scroll_to_line`, TOC or anchor
+     * navigation). The offset that results from that request is recorded as an echo on the next
+     * frame so it is not reported back as a user scroll, which would otherwise release an armed
+     * heading jump in the preview. */
+    pub editor_jump_echo_pending: bool,
     pub active_editor_line: Option<usize>,
     pub scroll_to_line: Option<usize>,
     pub toc_scroll_to_line: Option<usize>,
@@ -48,6 +53,7 @@ impl ScrollState {
             preview_max: 0.0,
             editor_echo: SyncEcho::default(),
             preview_echo: SyncEcho::default(),
+            editor_jump_echo_pending: false,
             active_editor_line: None,
             scroll_to_line: None,
             toc_scroll_to_line: None,

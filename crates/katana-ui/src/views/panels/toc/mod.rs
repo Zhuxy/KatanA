@@ -118,7 +118,10 @@ impl<'a> TocPanel<'a> {
                     }
 
                     if let Some(index) = next_scroll {
-                        self.preview.scroll_request = Some(index);
+                        crate::preview_pane::heading_jump::HeadingJumpOps::request(
+                            self.preview,
+                            index,
+                        );
                         Self::record_toc_click_anchor(
                             &mut self.state.toc,
                             &self.preview.anchor_map,

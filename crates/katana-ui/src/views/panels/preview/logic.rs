@@ -45,13 +45,11 @@ impl PreviewLogicOps {
         anchor_map: &[crate::preview_pane::types::DocumentAnchorMapItem],
         content_top_y: f32,
     ) -> Option<f32> {
-        let item = anchor_map.iter().find(|a| a.index == Some(heading_index))?;
-        let rect = item.outer_rect?;
-        /* WHY: rect.min.y is screen-space. Subtracting content_top_y converts it   */
-        /* to the ScrollArea's virtual-space offset (scroll_offset = 0 when at      */
-        /* the very top of the content, before any Frame/padding offsets).         */
-        /* We clamp to 0.0 to avoid negative offsets on the first heading.          */
-        Some((rect.min.y - content_top_y).max(0.0))
+        crate::preview_pane::heading_jump::HeadingJumpOps::scroll_offset_for(
+            heading_index,
+            anchor_map,
+            content_top_y,
+        )
     }
 
     pub fn update_scroll_sync(
