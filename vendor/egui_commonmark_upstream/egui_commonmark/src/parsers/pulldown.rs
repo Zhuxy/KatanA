@@ -651,6 +651,33 @@ impl<'a> CommonMarkViewerInternal<'a> {
         )
     }
 
+    /// Detects the inline HTML line break tag: `<br>`, `<br/>`, `<br />`, or with attributes.
+    pub(crate) fn is_br_tag(text: &str) -> bool {
+        let lower = text.trim().to_ascii_lowercase();
+        let Some(rest) = lower.strip_prefix("<br") else {
+            return false;
+        };
+        /* WHY: `<brx>` or an unterminated tag must not be treated as a line break. */
+        rest.contains('>') && !rest.contains('<')
+    }
+
+    /// Inserts a line break in the current text flow.
+    ///
+    /// WHY: A list item lays its bullet and its text out in one wrapping flex row that starts
+    /// at the bullet column, so a plain break would push the following text back to the left
+    /// of the bullet. An invisible spacer restores the hanging indent of the text column.
+    fn line_break(&mut self, ui: &mut Ui, options: &CommonMarkOptions) {
+        newline(ui);
+        if !(self.list.is_inside_a_list() && !self.inside_blockquote && !self.inside_table_cell) {
+            return;
+        }
+        let nesting_spaces = (self.list.depth() - 1) * options.indentation_spaces;
+        let indent = list_item_text_indent(ui, nesting_spaces);
+        if indent > 0.0 {
+            ui.add_space(indent);
+        }
+    }
+
     /// If split Id is provided then split points will be populated
     pub(crate) fn show(
         &mut self,
@@ -1678,8 +1705,12 @@ impl<'a> CommonMarkViewerInternal<'a> {
         // The moment we hit any other event (like Event::Text or TagEnd), we flush the
         // accumulated `html_block` buffer to `html_fn`, ensuring that consecutive tags
         // (like `<a href><img ...></a>`) are evaluated as a single well-formed HTML string.
+        // WHY: `<br>` is a line break, not markup to forward, so it flushes like plain text
+        // does; otherwise the buffered tag would render out of order after the break.
+        let is_line_break_tag = matches!(&event, pulldown_cmark::Event::InlineHtml(text) if Self::is_br_tag(text));
         match &event {
-            pulldown_cmark::Event::Html(_) | pulldown_cmark::Event::InlineHtml(_) => {}
+            pulldown_cmark::Event::Html(_) | pulldown_cmark::Event::InlineHtml(_)
+                if !is_line_break_tag => {}
             _ => {
                 if !self.is_in_html_block && !self.html_block.is_empty() {
                     // Flush pending text natively first, to preserve chronological flow
@@ -1798,7 +1829,15 @@ impl<'a> CommonMarkViewerInternal<'a> {
             }
             pulldown_cmark::Event::InlineHtml(text) => {
                 let trimmed = text.trim();
-                if trimmed.eq_ignore_ascii_case("<u>") {
+                if Self::is_br_tag(trimmed) {
+                    // WHY: `<br>` is a hard line break inside a paragraph or list item. It must
+                    // stay in the native text flow: forwarding it to `html_fn` would emit a
+                    // nested block that breaks the current line layout (no break at all, and
+                    // the following text drawn from the parent row's left edge).
+                    self.after_inline_widget = false;
+                    self.flush_pending_inline(ui, max_width);
+                    self.line_break(ui, options);
+                } else if trimmed.eq_ignore_ascii_case("<u>") {
                     self.text_style.underline = true;
                 } else if trimmed.eq_ignore_ascii_case("</u>") {
                     self.text_style.underline = false;
@@ -1895,7 +1934,7 @@ impl<'a> CommonMarkViewerInternal<'a> {
             pulldown_cmark::Event::HardBreak => {
                 self.after_inline_widget = false;
                 self.flush_pending_inline(ui, max_width);
-                newline(ui)
+                self.line_break(ui, options);
             }
             pulldown_cmark::Event::Rule => {
                 self.after_inline_widget = false;

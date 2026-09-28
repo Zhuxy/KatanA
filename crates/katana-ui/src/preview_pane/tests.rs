@@ -1474,4 +1474,101 @@ mod tests {
             harness.run();
         });
     }
+
+    #[test]
+    fn inline_html_break_starts_a_new_line_aligned_with_the_list_text() {
+        use egui_kittest::Harness;
+        use egui_kittest::kittest::Queryable;
+
+        with_missing_renderer_assets(|| {
+            let mut harness = Harness::builder()
+                .with_size(egui::vec2(700.0, 600.0))
+                .build_ui(|ui| {
+                    let mut pane = PreviewPane::default();
+                    let source = "- Preconditions: PRE-1: alpha.<br>PRE-2: beta.<br>PRE-3: gamma.";
+                    let cache =
+                        std::sync::Arc::new(katana_platform::InMemoryCacheService::default());
+
+                    pane.full_render(
+                        source,
+                        std::path::Path::new("/tmp/test.md"),
+                        cache,
+                        false,
+                        4,
+                    );
+                    pane.wait_for_renders();
+
+                    pane.show(ui);
+                });
+
+            harness.run();
+
+            let first = harness.get_by_label_contains("PRE-1: alpha.").rect();
+            let second = harness.get_by_label_contains("PRE-2: beta.").rect();
+            let third = harness.get_by_label_contains("PRE-3: gamma.").rect();
+
+            assert!(
+                second.min.y > first.min.y,
+                "`<br>` must start a new line, got first={first:?} second={second:?}"
+            );
+            assert!(
+                third.min.y > second.min.y,
+                "each `<br>` must start a new line, got second={second:?} third={third:?}"
+            );
+            assert!(
+                (second.min.x - first.min.x).abs() < 1.0 && (third.min.x - first.min.x).abs() < 1.0,
+                "continuation lines must keep the list text indent, got first={first:?} \
+                 second={second:?} third={third:?}"
+            );
+            assert!(
+                first.max.y <= second.min.y && second.max.y <= third.min.y,
+                "lines must not overlap, got first={first:?} second={second:?} third={third:?}"
+            );
+        });
+    }
+
+    #[test]
+    fn inline_html_break_starts_a_new_line_inside_a_paragraph() {
+        use egui_kittest::Harness;
+        use egui_kittest::kittest::Queryable;
+
+        with_missing_renderer_assets(|| {
+            let mut harness = Harness::builder()
+                .with_size(egui::vec2(700.0, 600.0))
+                .build_ui(|ui| {
+                    let mut pane = PreviewPane::default();
+                    let source = "alpha line one.<br>beta line two.<br/>gamma line three.";
+                    let cache =
+                        std::sync::Arc::new(katana_platform::InMemoryCacheService::default());
+
+                    pane.full_render(
+                        source,
+                        std::path::Path::new("/tmp/test.md"),
+                        cache,
+                        false,
+                        4,
+                    );
+                    pane.wait_for_renders();
+
+                    pane.show(ui);
+                });
+
+            harness.run();
+
+            let first = harness.get_by_label_contains("alpha line one.").rect();
+            let second = harness.get_by_label_contains("beta line two.").rect();
+            let third = harness.get_by_label_contains("gamma line three.").rect();
+
+            assert!(
+                second.min.y > first.min.y && third.min.y > second.min.y,
+                "`<br>` and `<br/>` must start new lines, got first={first:?} second={second:?} \
+                 third={third:?}"
+            );
+            assert!(
+                (second.min.x - first.min.x).abs() < 1.0 && (third.min.x - first.min.x).abs() < 1.0,
+                "paragraph lines must share the same left edge, got first={first:?} \
+                 second={second:?} third={third:?}"
+            );
+        });
+    }
 }

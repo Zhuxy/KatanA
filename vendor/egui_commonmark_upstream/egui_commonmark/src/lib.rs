@@ -660,6 +660,11 @@ impl List {
         self.items.len() == 1
     }
 
+    /// Nesting depth of the current list level (1 for a top-level list).
+    pub fn depth(&self) -> usize {
+        self.items.len()
+    }
+
     pub fn start_item_newline(&mut self, ui: &mut egui::Ui, inside_blockquote: bool) {
         // To ensure that newlines are only inserted within the list and not before it
         if self.has_list_begun {

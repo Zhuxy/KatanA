@@ -19,6 +19,14 @@ pub fn newline(ui: &mut Ui) {
     ui.label("\n");
 }
 
+/// Horizontal offset of a list item's text column, measured from the item's left edge.
+/// The bullet/number column is four space widths wide, is preceded by the nesting
+/// indentation spaces, and is followed by 4px of spacing.
+pub fn list_item_text_indent(ui: &Ui, nesting_spaces: usize) -> f32 {
+    let spaces = 4.0 + nesting_spaces as f32;
+    width_body_space(ui) * spaces + 4.0
+}
+
 pub fn bullet_point(ui: &mut Ui) {
     let (rect, _) = ui.allocate_exact_size(
         egui::vec2(width_body_space(ui) * 4.0, height_body(ui)),
