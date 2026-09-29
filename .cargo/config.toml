@@ -1,2 +1,19 @@
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
+
+# WHY: The default dev profile (debug = 2, incremental = true) made `target/debug` grow past
+# 30GB: ~1100 dependency rlibs plus ~200 test binaries, each hundreds of MB, plus a multi-GB
+# incremental cache. Debug info for dependencies is never needed here, and the incremental cache
+# only helps within a single editing burst while costing gigabytes.
+[profile.dev]
+debug = 1
+incremental = false
+
+# WHY: Keep only line tables for the workspace crates so backtraces stay readable, and drop
+# debug info for every dependency (they are never stepped through).
+[profile.dev.package."*"]
+debug = 0
+
+# WHY: `profile.release` is intentionally left at its defaults. Release already builds with
+# `debug = false`, so there is no debuginfo left to strip, and stripping the symbol table would
+# only shrink the binary at the cost of unreadable crash reports.
