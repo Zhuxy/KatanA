@@ -7,7 +7,7 @@ impl ShellLogicOps {
     }
 
     pub fn format_document_title(fname: &str, rel: &str, release_notes: &str) -> String {
-        let app = crate::about_info::current_app_name();
+        let app = crate::about_info::AppIdentityOps::app_name();
         if fname == release_notes {
             return format!("{release_notes} - {app}");
         }
@@ -15,7 +15,7 @@ impl ShellLogicOps {
     }
 
     pub fn format_workspace_window_title(ws_root: Option<&Path>) -> String {
-        let app = crate::about_info::current_app_name();
+        let app = crate::about_info::AppIdentityOps::app_name();
         let Some(root) = ws_root else {
             return app.to_string();
         };

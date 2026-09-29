@@ -7,18 +7,6 @@ use sha2::{Digest, Sha256};
 
 use super::types::{CacheMetadata, CachedFile};
 
-pub(crate) fn cache_namespace_dir() -> String {
-    // Detect app name from executable to support multiple instances
-    let app_name = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
-        .unwrap_or_else(|| "KatanA".to_string());
-    
-    match app_name.as_str() {
-        "KatanB" => "KatanB".to_string(),
-        _ => "KatanA".to_string(),
-    }
-}
 pub(crate) const HTTP_IMAGE_CACHE_DIR: &str = "http-image-cache";
 pub(crate) const CACHE_BODY_EXTENSION: &str = "bin";
 pub(crate) const CACHE_META_EXTENSION: &str = "json";
@@ -26,10 +14,23 @@ pub(crate) const CACHE_META_EXTENSION: &str = "json";
 pub(crate) struct HttpCacheDiskOps;
 
 impl HttpCacheDiskOps {
+    /// Detect the app name from the executable so KatanA and KatanB keep separate caches.
+    pub(crate) fn cache_namespace_dir() -> String {
+        let app_name = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+            .unwrap_or_else(|| "KatanA".to_string());
+
+        match app_name.as_str() {
+            "KatanB" => "KatanB".to_string(),
+            _ => "KatanA".to_string(),
+        }
+    }
+
     pub(crate) fn default_http_cache_dir() -> PathBuf {
         dirs::cache_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join(cache_namespace_dir())
+            .join(Self::cache_namespace_dir())
             .join(HTTP_IMAGE_CACHE_DIR)
     }
 

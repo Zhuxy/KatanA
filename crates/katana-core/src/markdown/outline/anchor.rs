@@ -5,6 +5,11 @@
 
 use super::types::OutlineItem;
 
+/// Length of a percent escape (`%XX`) and of the two hexadecimal digits that follow it.
+const PERCENT_ESCAPE_LEN: usize = 3;
+/// Radix of the hexadecimal digits in a percent escape.
+const HEX_RADIX: u32 = 16;
+
 pub struct HeadingAnchorOps;
 
 impl HeadingAnchorOps {
@@ -101,11 +106,12 @@ impl HeadingAnchorOps {
         let mut decoded: Vec<u8> = Vec::with_capacity(bytes.len());
         let mut index = 0;
         while index < bytes.len() {
-            if bytes[index] == b'%' && index + 2 < bytes.len() {
-                let hex = std::str::from_utf8(&bytes[index + 1..index + 3]).ok();
-                if let Some(byte) = hex.and_then(|value| u8::from_str_radix(value, 16).ok()) {
+            if bytes[index] == b'%' && index + PERCENT_ESCAPE_LEN <= bytes.len() {
+                let hex = std::str::from_utf8(&bytes[index + 1..index + PERCENT_ESCAPE_LEN]).ok();
+                if let Some(byte) = hex.and_then(|value| u8::from_str_radix(value, HEX_RADIX).ok())
+                {
                     decoded.push(byte);
-                    index += 3;
+                    index += PERCENT_ESCAPE_LEN;
                     continue;
                 }
             }

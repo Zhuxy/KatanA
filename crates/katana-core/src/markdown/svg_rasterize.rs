@@ -106,6 +106,7 @@ mod tests {
 
         let rasterized = SvgRasterizeOps::rasterize_svg(source, 1.0).expect("rasterize PlantUML");
 
-        assert!(rasterized.rgba.chunks_exact(4).any(|pixel| pixel[3] > 0));
+        let (pixels, _) = rasterized.rgba.as_chunks::<4>();
+        assert!(pixels.iter().any(|pixel| pixel[3] > 0));
     }
 }

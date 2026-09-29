@@ -1,5 +1,6 @@
 mod content;
 mod content_html_browser;
+mod content_jump;
 #[cfg(test)]
 #[path = "content_tests.rs"]
 mod content_tests;

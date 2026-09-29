@@ -5,6 +5,7 @@ use std::path::PathBuf;
 /* WHY: Extracted from monolithic cache module to provide file-based persistent cache functionality.
 SAFETY: Implements thread-safe locking mechanisms via RwLock and gracefully handles OS cache paths. */
 
+mod diagram_cache;
 mod migration;
 mod types;
 
@@ -168,32 +169,6 @@ impl CacheFacade for DefaultCacheService {
 }
 
 impl DefaultCacheService {
-    fn is_diagram_cache_raw_key(key: &str) -> bool {
-        key.starts_with("diagram:") || key.starts_with("diagram_render:")
-    }
-
-    fn clear_temporary_diagram_images() {
-        let temp_dir = std::env::temp_dir();
-        
-        // Detect app name for temp directory isolation
-        let app_suffix = std::env::current_exe()
-            .ok()
-            .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
-            .map(|name| match name.as_str() {
-                "KatanB" => "katana_b".to_string(),
-                _ => "katana_a".to_string(),
-            })
-            .unwrap_or_else(|| "katana".to_string());
-        
-        let cache_dirs = [
-            temp_dir.join(format!("{app_suffix}_mermaid_cache")),
-            temp_dir.join(format!("{app_suffix}_drawio_cache")),
-        ];
-        for cache_dir in cache_dirs {
-            let _ = std::fs::remove_dir_all(cache_dir);
-        }
-    }
-
     fn cache_root_for_service(&self) -> PathBuf {
         self.persistent_base_path.parent().map_or_else(
             PlatformCachePathResolver::cache_root,
@@ -307,9 +282,9 @@ mod tests {
         let tmp = TempDir::new().expect("Failed to create temp dir");
         let path = tmp.path().join("cache.json");
         let cache = DefaultCacheService::new(path);
-        // Use generic names for test (app name detection won't work in test context)
-        let mermaid_cache = std::env::temp_dir().join("katana_mermaid_cache");
-        let drawio_cache = std::env::temp_dir().join("katana_drawio_cache");
+        /* WHY: Derive the directories from the production helper; app-name detection resolves to
+         * the test binary's name, so hardcoded legacy paths no longer match. */
+        let [mermaid_cache, drawio_cache] = DefaultCacheService::temporary_diagram_cache_dirs();
         std::fs::create_dir_all(&mermaid_cache).expect("mkdir mermaid");
         std::fs::create_dir_all(&drawio_cache).expect("mkdir drawio");
         std::fs::write(mermaid_cache.join("diagram.png"), "png").expect("write mermaid");

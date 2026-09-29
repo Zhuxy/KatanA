@@ -40,7 +40,7 @@ fn main() -> eframe::Result<()> {
         )
         .init();
 
-    let app_name = katana_ui::about_info::current_app_name().to_string();
+    let app_name = katana_ui::about_info::AppIdentityOps::app_name().to_string();
     tracing::info!("Starting {}", app_name);
 
     #[cfg(target_os = "macos")]

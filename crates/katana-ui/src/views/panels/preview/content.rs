@@ -1,20 +1,15 @@
 mod constructor;
 
+use super::content_jump::PreviewJumpOps;
 use super::types::*;
 use super::{content_html_browser::show_html_browser_content, types::PreviewLogicOps};
 use crate::app_state::AppAction;
-use crate::preview_pane::heading_jump::HeadingJumpOps;
 use eframe::egui;
 
 const BACK_TO_TOP_THRESHOLD: f32 = 400.0;
 
-/// WHY: A scrollbar drag changes the offset without any wheel event, so it needs its own check.
-fn preview_scrollbar_dragged(ctx: &egui::Context, path: Option<&std::path::Path>) -> bool {
-    let Some(path) = path else {
-        return false;
-    };
-    ctx.dragged_id() == Some(egui::Id::new(("preview_scroll_area", path)))
-}
+/// Id salt of the preview scroll area; the scrollbar lives under this id.
+pub(super) const PREVIEW_SCROLL_AREA_ID: &str = "preview_scroll_area";
 
 impl<'a> PreviewContent<'a> {
     pub fn show(self, ui: &mut egui::Ui) {
@@ -57,35 +52,15 @@ impl<'a> PreviewContent<'a> {
             return;
         }
 
-        /* WHY: Sample the sync source before the scroll area runs: `update_scroll_sync` consumes
-         * it at the end of the frame, so the heading jump has to decide from this snapshot. */
-        let editor_drove_scroll = scroll_sync
-            && scroll.source == crate::app_state::ScrollSource::Editor
-            && scroll.scroll_to_line.is_none();
-
-        /* WHY: Check for forced scroll target from Sync System or Navigation. */
-        let mut forced_offset = PreviewLogicOps::compute_forced_offset(
-            scroll_sync,
-            scroll,
-            preview,
-            crate::shell::TREE_ROW_HEIGHT,
-            ui.available_height(),
-        );
-
-        /* WHY: An armed heading jump (table of contents or `#anchor` link) outranks the
-         * scroll sync and is re-derived every frame, so a later layout change cannot
-         * silently drop it. It stays armed until the user scrolls. */
-        if let Some((index, offset)) =
-            HeadingJumpOps::resolve_offset(preview, preview.content_top_y)
-        {
-            forced_offset = Some(offset);
-            HeadingJumpOps::note_applied(preview, index, offset);
-        }
+        /* WHY: Check for a forced scroll target from the sync system, the table of contents or
+         * an `#anchor` link navigation. */
+        let (forced_offset, editor_drove_scroll) =
+            PreviewJumpOps::apply(ui, scroll_sync, scroll, preview);
 
         let mut scroll_area = egui::ScrollArea::vertical()
             .auto_shrink([false; 2])
             .id_salt((
-                "preview_scroll_area",
+                PREVIEW_SCROLL_AREA_ID,
                 document.map(|doc| doc.path.as_path()),
             ));
 
@@ -172,24 +147,16 @@ impl<'a> PreviewContent<'a> {
             );
         }
 
-        /* WHY: Release the sticky heading jump once the user scrolls (wheel or scrollbar drag)
-         * or once another scroll driver (a search jump) takes over. */
-        if HeadingJumpOps::is_armed(preview) {
-            let applied_offset = output.inner.state.offset.y;
-            let user_scrolled = ui.input(|i| i.smooth_scroll_delta.y.abs() > 0.01)
-                || preview_scrollbar_dragged(ui.ctx(), document.map(|doc| doc.path.as_path()));
-            let other_driver_active = scroll.scroll_to_line.is_some()
-                || scroll.toc_scroll_to_line.is_some()
-                || editor_drove_scroll;
-            HeadingJumpOps::settle(
-                preview,
-                Some(applied_offset),
-                output.inner.content_size.y,
-                output.inner.inner_rect.height(),
-                user_scrolled,
-                other_driver_active,
-            );
-        }
+        PreviewJumpOps::settle(
+            ui,
+            preview,
+            scroll,
+            output.inner.state.offset.y,
+            output.inner.content_size.y,
+            output.inner.inner_rect.height(),
+            document.map(|doc| doc.path.as_path()),
+            editor_drove_scroll,
+        );
 
         /* WHY: We no longer need PreviewHeader. The TOC is toggled from the AppFrame side panel.
         Export and Story view are now floating buttons at the bottom right. */

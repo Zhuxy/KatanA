@@ -17,7 +17,7 @@ impl PlatformCachePathResolver {
             .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
             .unwrap_or_else(|| "KatanA".to_string())
     }
-    
+
     pub fn cache_root() -> PathBuf {
         let app_name = Self::app_name();
         let dir_name = match app_name.as_str() {

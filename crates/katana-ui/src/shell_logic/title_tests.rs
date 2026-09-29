@@ -33,7 +33,7 @@ fn app_title_keeps_active_document_context() {
 
 #[test]
 fn app_title_ends_with_current_app_name() {
-    let app = crate::about_info::current_app_name();
+    let app = crate::about_info::AppIdentityOps::app_name();
     let title = ShellLogicOps::format_document_title(
         "sample.ja.md",
         "assets/fixtures/sample.ja.md",

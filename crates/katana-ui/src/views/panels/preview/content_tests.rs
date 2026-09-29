@@ -16,12 +16,15 @@ const SECTION_12_INDEX: usize = 13;
 
 const PREVIEW_WIDTH: f32 = 600.0;
 const PREVIEW_HEIGHT: f32 = 400.0;
+const SECTION_COUNT: usize = 20;
+const PARAGRAPHS_PER_SECTION: usize = 6;
+const RENDER_CONCURRENCY: usize = 4;
 
 fn long_markdown() -> String {
     let mut md = String::from("# Doc Title\n\n");
-    for i in 0..20 {
+    for i in 0..SECTION_COUNT {
         md.push_str(&format!("## Section {i}\n\n"));
-        for j in 0..6 {
+        for j in 0..PARAGRAPHS_PER_SECTION {
             md.push_str(&format!("paragraph {i}-{j} lorem ipsum dolor sit amet\n\n"));
         }
     }
@@ -56,7 +59,7 @@ fn fixture(scroll_sync: bool) -> Fixture {
                     &path_for_build,
                     std::sync::Arc::new(katana_platform::InMemoryCacheService::default()),
                     false,
-                    4,
+                    RENDER_CONCURRENCY,
                 );
                 pane.wait_for_renders();
             }
@@ -233,7 +236,7 @@ fn a_new_document_render_drops_the_armed_jump() {
         &fixture.path,
         std::sync::Arc::new(katana_platform::InMemoryCacheService::default()),
         false,
-        4,
+        RENDER_CONCURRENCY,
     );
 
     assert!(

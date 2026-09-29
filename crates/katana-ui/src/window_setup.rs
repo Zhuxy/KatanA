@@ -38,4 +38,3 @@ pub(super) fn window_icon() -> std::sync::Arc<egui::IconData> {
 pub(super) fn window_icon() -> std::sync::Arc<egui::IconData> {
     load_icon()
 }
-

@@ -19,16 +19,15 @@ fn resolve_app_config_dir(
         .filter(|value| !value.is_empty())
         .map(PathBuf::from)
         .unwrap_or_else(|| {
-            let base = platform_config_dir
-                .unwrap_or_else(|| PathBuf::from("."));
-            
-            // Detect app name from executable path to support multiple instances
+            let base = platform_config_dir.unwrap_or_else(|| PathBuf::from("."));
+
+            /* WHY: Detect the app name from the executable so KatanA and KatanB keep separate configs. */
             let app_name = std::env::current_exe()
                 .ok()
                 .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
                 .unwrap_or_else(|| "KatanA".to_string());
-            
-            // Use app name as config directory suffix
+
+            /* WHY: The app name doubles as the config directory suffix. */
             match app_name.as_str() {
                 "KatanB" => base.join("KatanB"),
                 _ => base.join("KatanA"),

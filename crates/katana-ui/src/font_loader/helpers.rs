@@ -51,7 +51,7 @@ impl SystemFontLoader {
                 .unwrap_or("cjk_font")
                 .to_string();
 
-            // Skip if already loaded
+            /* WHY: Skip faces that are already registered. */
             if fonts.font_data.contains_key(&name) {
                 continue;
             }

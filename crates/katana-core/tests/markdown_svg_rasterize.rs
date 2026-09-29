@@ -84,7 +84,8 @@ fn invalid_svg_returns_error() {
 }
 
 fn has_visible_pixel(rgba: &[u8]) -> bool {
-    rgba.chunks_exact(4).any(|pixel| pixel[3] > 0)
+    let (pixels, _) = rgba.as_chunks::<4>();
+    pixels.iter().any(|pixel| pixel[3] > 0)
 }
 
 fn render_drawio_svg(source: &str) -> Option<String> {

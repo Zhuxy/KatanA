@@ -128,7 +128,7 @@ impl SystemFontLoader {
             );
         }
 
-        // Load all CJK fonts as fallbacks for better Chinese support
+        /* WHY: Register every CJK face as a fallback so Simplified Chinese glyphs resolve. */
         Self::load_all_valid_as_fallbacks(
             &mut fonts,
             proportional_candidates,
